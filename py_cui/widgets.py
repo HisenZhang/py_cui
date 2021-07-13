@@ -853,4 +853,74 @@ class ScrollTextBlock(Widget, py_cui.ui.TextBlockImplementation):
             self._renderer.reset_cursor(self)
         self._renderer.unset_color_mode(self._color)
 
+class LogBlock(TextBox, py_cui.ui.LogBlockImplementation):
+    """Widget for displaying log, which sticks to the last (latest) line
 
+    Include this logging handler in your project:
+
+    class LogBlockHandler(logging.Handler):
+        def __init__(self, logBlock):
+            logging.Handler.__init__(self)
+            self.logBlock = logBlock
+
+        def emit(self, record):
+            if record:
+                self.logBlock.write(self.format(record))
+
+    Then register it:
+
+    handler = LogBlockHandler(LogBlockObject)
+    handler.setFormatter(YourLogFormatter)
+    rootLogger.addHandler(handler)
+    """
+    def __init__(self, id, title, grid, row, column, row_span, column_span, padx, pady, logger, initial_text):
+        """Initializer for LogBlock Widget. Uses LogBlockImplementation as base
+        """
+
+        Widget.__init__(self, id, title, grid, row, column, row_span, column_span, padx, pady, logger)
+        py_cui.ui.LogBlockImplementation.__init__(self, initial_text, logger)
+        self.update_height_width()
+        self.set_help_text('Focus mode on LogBlock. Press Esc to exit focus mode.')
+
+    def _handle_key_press(self, key_pressed):
+        """Override of base class handle key press function
+
+        Parameters
+        ----------
+        key_pressed : int
+            key code of key pressed
+        """
+
+        Widget._handle_key_press(key_pressed)
+
+        if key_pressed == py_cui.keys.KEY_LEFT_ARROW:
+            self._move_left()
+        elif key_pressed == py_cui.keys.KEY_RIGHT_ARROW:
+            self._move_right()
+        elif key_pressed == py_cui.keys.KEY_UP_ARROW:
+            self._move_up()
+        elif key_pressed == py_cui.keys.KEY_DOWN_ARROW and self._cursor_text_pos_y < len(self._text_lines) - 1:
+            self._move_down()
+        elif key_pressed == py_cui.keys.KEY_HOME:
+            self._viewport_y_start = 0
+        elif key_pressed == py_cui.keys.KEY_END:
+            self._stick_to_bottom()
+            self._cursor_text_pos_x = 0
+        elif key_pressed == py_cui.keys.KEY_HOME:
+            self._viewport_y_start = 0
+        elif key_pressed == py_cui.keys.KEY_END:
+            self._stick_to_bottom()
+            self._cursor_text_pos_x = 0
+        elif key_pressed == py_cui.keys.KEY_PAGE_UP:
+            h, _ = self.get_viewport_dims()
+            if self._viewport_y_start < h:
+                self._viewport_y_start = 0
+            else:
+                self._viewport_y_start -= h
+        elif key_pressed == py_cui.keys.KEY_PAGE_DOWN:
+            h, _ = self.get_viewport_dims()
+            lastLineNum = len(self._text_lines)
+            if self._viewport_y_start + h >= lastLineNum:
+                self._viewport_y_start = lastLineNum - h
+            else:
+                self._viewport_y_start += h
